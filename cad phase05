@@ -1,0 +1,194 @@
+Python
+import json
+def process_data(event):
+ """This function processes the data received from the IoT 
+device."""
+ # Get the sensor reading from the event data.
+ sensor_reading = event["data"]["sensor_reading"]
+ # Filter the data based on certain criteria.
+ if sensor_reading > 100:
+ # Trigger an automated routine.
+ send_alert_email()
+def send_alert_email():
+ """This function sends an alert email."""
+ # Create an email message.
+ email_message = """
+ Subject: Sensor alert!
+ The sensor reading has exceeded the threshold.
+ """
+ # Send the email message.
+ send_email(email_message)
+# Register the function to be triggered when an event is 
+received from the IoT device.
+IBMCloudFunctions.register_function(process_data, 
+"iot_device_event")
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import datetime
+%matplotlib inline 
+import scipy.integrate as integrate
+from scipy.optimize import curve_fit
+pd.options.display.max_rows = 12
+data = pd.read_csv("../input/data.txt", sep = ' ',header = None, names = ['date', 
+'time','epoch','moteid','temp','humidity','light','voltage'])
+data.head()
+
+data.shape
+(2313682, 8)
+data.describe()
+data.describe()
+
+data.isnull().sum()
+date 0
+time 0
+epoch 0
+moteid 526
+temp 901
+humidity 902
+light 93878
+voltage 526
+dtype: int64
+data['temp'].plot() 
+data.fillna(0, inplace=True)
+data['epoch'].replace(regex=True, inplace=True, to_replace=r'[^0-9.\-]', 
+value=r'')
+data['epoch'] = data['epoch'].astype(int)
+data.isnull().sum()
+data['Timestamp'] = data[['date', 'time']].apply(lambda x: ' 
+'.join(x.astype(str)), axis=1)
+new_data = data
+In [11]:
+data.drop(['date','time'],axis=1,inplace =True)
+data.set_index(pd.to_datetime(data.Timestamp), inplace=True)
+In [12]:
+data[['moteid','temp','humidity','light','voltage']] = 
+data[['moteid','temp','humidity','light','voltage']].apply(pd.to_numeric)
+data['moteid'].value_counts()
+Out[13]:
+31.0 65694
+29.0 64391
+23.0 62440
+26.0 61521
+22.0 60165
+21.0 58525
+ ... 
+0.0 526
+5.0 35
+57.0 3
+65407.0 1
+6485.0 1
+33117.0 1
+Name: moteid, Length: 62, dtype: int64
+moteid_grp = data.groupby(['moteid'])
+node_distance = pd.read_csv('../input/intel_nodes_distances.csv')
+lists_hy = []
+lists_hx = []
+ 
+for z in range(10):
+ # Calculation of the covariance for lag i hour for temp
+ humy = [None] *45
+ humx = [None] *45
+ k=0
+ i=0
+ for first_column in Temperature_data:
+ df1 = Temperature_data[first_column][:-(1+z)]
+ std_test1=np.std(df1)
+ j = 0
+ for second_column in Temperature_data:
+ if j <= i:
+ df2 = Temperature_data[second_column][(1+z):]
+ std_test2=np.std(df2)
+ humy[k] = (np.cov(df1,df2)/(std_test1*std_test2)).item((0, 1))
+ humx[k] = node_distance.iloc[i,j]
+ j = j + 1
+ k = k + 1
+ i = i + 1
+ lists_hy.append(humy)
+ lists_hx.append(humx)
+ axes = plt.subplots(nrows=1, ncols=4, figsize=(60,20))
+for xcol, ax in zip(['humidity', 'temp', 'light','voltage'], axes):
+ data.plot(kind='scatter', x='epoch', y=xcol, ax=ax, alpha=1, color='r')
+Variation with Voltage
+In [24]:
+fig, axes = plt.subplots(nrows=1, ncols=3, figsize=(60,30))
+for xcol, ax in zip(['temp', 'light','humidity'], axes):
+axes = plt.subplots(nrows=1, ncols=3, figsize=(60,30))
+for xcol, ax in zip(['temp', 'humidity','voltage'], axes):
+ data.plot(kind='scatter', x='light', y=xcol, ax=ax, alpha=1, color='g')
+Variation with Humidity
+In [26]:
+fig, axes = plt.subplots(nrows=1, ncols=3, figsize=(60,30))
+for xcol, ax in zip(['temp', 'light','voltage'], axes):
+ data.plot(kind='scatter', x='humidity', y=xcol, ax=ax, alpha=1,
+new_data.plot(subplots=True,linewidth=0.5,
+ layout=(2, 4),figsize=(60, 20),
+ sharex=False,
+ sharey=False)
+plt.show()
+Variation in temperature readings over time for moteid's: 21 and 22
+In [31]:
+from matplotlib import pyplot as plt 
+d_m21 = data.loc[data['moteid'] == 21.0]
+d_m22 = data.loc[data['moteid'] == 22.0]
+d_m10 = data.loc[data['moteid'] == 10.0]
+fig2 = plt.figure(figsize = (15,10))
+d_m21['temp'].plot(label='temperature for moteid=21.0')
+d_m22['temp'].plot(label='temperature for moteid=22.0')
+fig2.suptitle('Variation in temperature over time for moteid= 21.0 and 22.0', 
+fontsize=10)
+plt.xlabel('timestamp', fontsize=10)
+plt.ylabel('temperature', fontsize=10)
+plt.legend()
+from itertools import count
+import matplotlib.pyplot as plt
+from numpy import linspace, loadtxt, ones, convolve
+import numpy as np
+import pandas as pd
+import collections
+from random import randint
+from matplotlib import style
+%matplotlib inline
+def mov_average(data, window_size):
+ window = np.ones(int(window_size))/float(window_size)
+ return np.convolve(data, window, 'same')
+def find_anomalies(y, window_size, sigma=1.0):
+ avg = mov_average(y, window_size).tolist()
+ residual = y - avg
+ std = np.std(residual)
+ return {'standard_deviation': round(std, 3),
+ 'anomalies_dict': collections.OrderedDict([(index, y_i) for index, 
+y_i, avg_i in zip(count(), y, avg)
+ if (y_i > avg_i + (sigma*std)) | (y_i < avg_i - (sigma*std))])}
+def plot_results(x, y, window_size, sigma_value=1,
+ text_xlabel="X Axis", text_ylabel="Y Axis", 
+applying_rolling_std=False):
+ 
+ plt.figure(figsize=(15, 8))
+ plt.plot(x, y, "k.")
+ y_av = mov_average(y, window_size)
+ plt.plot(x, y_av, color='green')
+ plt.xlim(0, 40000)
+ plt.xlabel(text_xlabel)
+ plt.ylabel(text_ylabel)
+ events = {}
+ events = find_anomalies(y, window_size=window_size, sigma=sigma_value)
+x_anom = np.fromiter(events['anomalies_dict'].keys(), dtype=int, 
+count=len(events['anomalies_dict']))
+ y_anom = np.fromiter(events['anomalies_dict'].values(), 
+dtype=float,count=len(events['anomalies_dict']))
+ plt.plot(x_anom, y_anom, "b*")
+ print(x_anom)
+ plt.grid(True)
+ plt.show()
+x = d_m10['epoch']
+Y = d_m10['temp']
+plot_results(x, y=Y, window_size=50, text_xlabel="Date", 
+sigma_value=3,text_ylabel="temperature")
+[23743 23751 23761 23999 24206 24302 24303 24324 24350 25415 26094 
+26101
+26325 26336 26371 26422 26437 26549 26551 26581 26588 26622 26624 
+26636
+26713 26723 29505 29506 29507 36012 36017 40733 40748 40775 40779 
+40787
+40840 40841 40848 40982 41115 41201]
